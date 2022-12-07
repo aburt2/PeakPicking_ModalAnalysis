@@ -54,6 +54,14 @@ classdef modalAnalyser < handle
             obj.modalFrequency(poleIndex,:) = [];
             obj.modalAmplitudes(poleIndex,:) = [];
 
+            % Update frequency range
+            % Recompute v
+            obj.v = [];
+            for n = 1:size(obj.modalFrequency,1)
+                wn = obj.modalFrequency(n,1);
+                obj.updateFrequencyRange(wn)
+            end
+
             % Update M matrix
             obj.updateMMatrix();
 
@@ -61,7 +69,7 @@ classdef modalAnalyser < handle
             obj.updateDMatrix();
 
             % Update amplitudes
-            obj.modalAmplitudes = lsqminnorm(obj.M,obj.d);
+            obj.modalAmplitudes = mldivide(obj.M,obj.d);
         end
    
         function obj = refineIdentification(obj)
@@ -70,6 +78,9 @@ classdef modalAnalyser < handle
 
             % Sort poles in ascending order
             obj.modalFrequency = sort(obj.modalFrequency,1);
+
+            % Sort frequencies as well
+            obj.v = sort(obj.v,1);
 
             % Start loop
             for n = 1:size(obj.modalFrequency,1)
@@ -88,6 +99,7 @@ classdef modalAnalyser < handle
             obj.fittingBandwidth = newBandwidth;
 
             % Recompute v
+            obj.v = [];
             for n = 1:size(obj.modalFrequency,1)
                 wn = obj.modalFrequency(n,1);
                 obj.updateFrequencyRange(wn)
@@ -124,8 +136,7 @@ classdef modalAnalyser < handle
         end
 
         function obj = updateDMatrix(obj)
-            %IMPEDANCEPLOT get an array of frequencies and associated
-            %magnitudes given the current poles
+            %UPDATEDMATRIX update d matrix
             
             % Get Frequency measurements
             logicIdx = ismember(obj.impMeasurement,obj.v);
@@ -195,10 +206,10 @@ classdef modalAnalyser < handle
             obj.updateDMatrix();
             
             % Guess amplitudes
-            obj.modalAmplitudes = lsqminnorm(obj.M,obj.d);
+            obj.modalAmplitudes = mldivide(obj.M,obj.d);
 
             % return value
-            cost = norm(obj.M*obj.modalAmplitudes - obj.d);
+            cost = norm(obj.M*obj.modalAmplitudes - obj.d)^2;
         end
     end
 end
